@@ -1,3 +1,25 @@
+#define BLOCK_SIZE 1024
+#define NB_BLOCKS 20
+#define NB_FILES 512
+
+typedef struct i_node {
+    
+} i_node;
+
+typedef struct INodeTable {
+    i_node table[NB_FILES]; 
+    int size;
+} INodeTable;
+
+typedef struct SuperBlock {
+    int magic_number;
+    int block_size;
+    int fs_size;
+    int num_inodes;
+    i_node j_node;
+} SuperBlock;
+
+
 /*!
  * @name        mkssfs
  * @param       fresh      If 1, create the file system from scratch. 
@@ -72,7 +94,7 @@ int ssfs_fwrite(int fileID, char *buf, int length);
  * Reads the given number of bytes into buf from the open file, starting from the 
  * current read file pointer.
 */
-int ssfs_fread(int fileID, chr *buf, int length);
+int ssfs_fread(int fileID, char *buf, int length);
 
 /*!
  * @name ssfs_remove
