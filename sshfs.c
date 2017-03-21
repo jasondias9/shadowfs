@@ -1,12 +1,18 @@
 #include "disk_emu.h"
+#include "sshfs_helper.c" //update to header
+#include "sshfs.h"
 #include <stdio.h>
+
+INodeTable inat;
+
 
 void mkssfs(int fresh) {
     
     if(fresh) {
-        init_fresh_disk("test_disk", 1024, 20);
+        INodeTable_init(&inat);      
+        init_fresh_disk("test_disk", BLOCK_SIZE, NB_BLOCKS);
     } else {
-        init_disk("test_disk", 1024, 20);
+        init_disk("test_disk", BLOCK_SIZE, NB_BLOCKS);
     }
 }
 
