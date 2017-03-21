@@ -1,3 +1,6 @@
+#ifndef _SSHFS_
+#define _SSHFS_
+
 #define BLOCK_SIZE 1024
 #define NB_BLOCKS 20
 #define NB_FILES 512
@@ -119,3 +122,4 @@ int ssfs_commit();
 */
 int ssfs_restore(int cnum);
 
+#endif
