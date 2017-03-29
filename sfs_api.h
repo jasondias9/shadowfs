@@ -2,8 +2,9 @@
 #define _SSHFS_
 
 #define BLOCK_SIZE 1024
-#define NB_BLOCKS 20
+#define NB_BLOCKS 4096
 #define NB_FILES 512
+#define DISK_SIZE 1024000
 
 typedef struct i_node {
     
@@ -22,6 +23,9 @@ typedef struct SuperBlock {
     i_node j_node;
 } SuperBlock;
 
+typedef struct FBM {
+   int fbm[NB_BLOCKS]; 
+} FBM;
 
 /*!
  * @name        mkssfs
