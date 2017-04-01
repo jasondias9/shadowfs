@@ -2,38 +2,59 @@
 #include "sshfs_helper.c" //update to header
 #include "sfs_api.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-INodeTable inat;
-SuperBlock sb;
+SuperBlock_t sb;
+RootDirectory_t rootdir;
+FBM_t fbm;
 
+void FBM_init(FBM_t *fbm) {
+    for(int i = 0; i < NB_BLOCKS; i++) {
+        if(i <= 15) { 
+            fbm->fbm[i];
+        }
+    }
+}
 
-/*
- * 1) j-node is an inode that points to every inode?
- * 2) is an inode just a 1-1 mapping to a file? 
- * 3) free bitmap just maps free data blocks?
- * 4) same for write mask
- * 5) shadow nodes are just root nodes from prior saved states?
- * but these are just pointers? where does the data get saved?
- * 6) root dir?
- *
- * */
+void SuperBlock_init(SuperBlock_t *sb) {
+    
+    sb->magic_number = 0xACBD0005;
+    sb->block_size = BLOCK_SIZE;
+    sb->fs_size = FS_SIZE; 
+    sb->num_inodes = NB_FILES-1;
+    i_node_t root;
+    root.size = 13;
+    for(int i = 0; i < NB_BLOCKS-1; i++) {
+        if(i >= 2 && i < 15) { 
+            root.direct[i] = i;
+        } else {
+            root.direct[i] = -1; 
+        }
+    }
+    sb->root = root; 
+}
 
 void mkssfs(int fresh) {
     
     if(fresh) {
-        INodeTable_init(&inat);   
+
         SuperBlock_init(&sb);        
-
+        FBM_init(&fbm);
         init_fresh_disk("test_disk", BLOCK_SIZE, NB_BLOCKS);
-
-        //write the inode allaction table
-
-        write_blocks(0, 1, (void *) &inat);
-        //write_blocks(offset,1, (void *) &sb);
+        rootdir = *(struct RootDirectory *)malloc(sizeof(rootdir));
         
+        write_blocks(0,1, &sb); 
+        write_blocks(1,1, &rootdir);
+
     } else {
         init_disk("test_disk", BLOCK_SIZE, NB_BLOCKS);
     }
+}
+
+int main() {
+    mkssfs(1);
+
 }
 
 int ssfs_fopen(char *name) {

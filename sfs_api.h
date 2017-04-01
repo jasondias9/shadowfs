@@ -2,30 +2,37 @@
 #define _SSHFS_
 
 #define BLOCK_SIZE 1024
-#define NB_BLOCKS 4096
-#define NB_FILES 512
-#define DISK_SIZE 1024000
+#define NB_BLOCKS 1024
+#define NB_FILES 200
+#define FS_SIZE 1048576
+#define NB_SHADOWS 10
+
 
 typedef struct i_node {
-    
-} i_node;
-
-typedef struct INodeTable {
-    i_node table[NB_FILES]; 
     int size;
-} INodeTable;
+    int direct[NB_BLOCKS]; //pointers to blocks
+} i_node_t;
+
+typedef struct RootDirectory {
+    char *name[NB_FILES];
+    i_node_t i_node_table[NB_FILES];
+} RootDirectory_t;
+
+typedef struct block {
+    unsigned char data[BLOCK_SIZE];
+} block_t;
 
 typedef struct SuperBlock {
     int magic_number;
     int block_size;
     int fs_size;
     int num_inodes;
-    i_node j_node;
-} SuperBlock;
+    i_node_t root;
+} SuperBlock_t;
 
 typedef struct FBM {
    int fbm[NB_BLOCKS]; 
-} FBM;
+} FBM_t;
 
 /*!
  * @name        mkssfs
