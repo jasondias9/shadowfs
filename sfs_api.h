@@ -10,6 +10,7 @@
 #define MAX_NAME_LENGTH 10
 #define PERM_ALLOCATED_BLOCK_OFFSET 3
 
+#include <stdint.h>
 
 typedef struct inode {
     int size;
@@ -18,10 +19,13 @@ typedef struct inode {
     int indirect;
 } inode_t;
 
-typedef struct RootDirectory {
+typedef struct inode_f_t {
     inode_t inode_table[NB_FILES];
-    char name[NB_FILES][MAX_NAME_LENGTH+1];
-} RootDirectory_t;
+} inode_f_t;
+
+typedef struct root_directory {
+    char name[NB_FILES-1][MAX_NAME_LENGTH+1];
+} root_directory_t;
 
 typedef struct block {
     unsigned char data[BLOCK_SIZE];
@@ -36,7 +40,7 @@ typedef struct SuperBlock {
 } SuperBlock_t;
 
 typedef struct FBM {
-   int fbm[NB_BLOCKS]; 
+   uint8_t fbm[NB_BLOCKS]; 
 } FBM_t;
 
 /*!

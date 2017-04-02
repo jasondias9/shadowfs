@@ -5,8 +5,9 @@
 #include <string.h>
 
 SuperBlock_t sb;
-RootDirectory_t rootdir;
 FBM_t fbm;
+root_directory_t root;
+inode_f_t inode_f;
 
 void FBM_init(FBM_t *fbm) {
     for(int i = 0; i < NB_BLOCKS; i++) {
@@ -36,13 +37,36 @@ void SuperBlock_init(SuperBlock_t *sb) {
     sb->root = root; 
 }
 
-void INodeFile_init(inode_t *inode) {
+void inode_init(inode_t *inode) {
     inode->size = 0;
     inode->indirect = -1;
     for(int i = 0; i < MAX_DIRECTS; i++) {
         //file points to no blocks for now.  
         inode->direct[i] = -1;
     } 
+}
+
+void prepare_blks(inode_f_t *inode_f_ptr, block_t *blks) { 
+    for(int i = 0; i < MAX_DIRECTS; i++) {
+        blks[i] =  *(block_t *)malloc(BLOCK_SIZE);
+        memcpy(&blks[i], inode_f_ptr, BLOCK_SIZE);
+        inode_f_ptr += BLOCK_SIZE;
+    }
+}
+
+void root_init(inode_t *root) {
+
+}
+
+void inode_alloc(inode_f_t *inode_f, inode_t inode) {
+    //initialize root
+    inode_t root_inode = *(inode_t *)malloc(sizeof(inode_t));
+    memcpy(&root_inode, &inode, sizeof(inode));
+    root_init(&root_inode); 
+
+    for(int i = 1; i < NB_FILES; i++) {
+        inode_f->inode_table[i] = inode; 
+    }
 }
 
 void mkssfs(int fresh) {
@@ -55,22 +79,28 @@ void mkssfs(int fresh) {
 
         sb = *(SuperBlock_t *)malloc(sizeof(SuperBlock_t));
         fbm = *(FBM_t *)malloc(sizeof(FBM_t));
-        rootdir = *(RootDirectory_t *)malloc(sizeof(rootdir));
+        root = *(root_directory_t *)malloc(sizeof(root_directory_t));
         inode_t inode = *(inode_t *)malloc(sizeof(inode_t));
 
         SuperBlock_init(&sb);        
         FBM_init(&fbm);
-        INodeFile_init(&inode);
+        
+        //inode_init(&inode);
+        //inode_f = *(inode_f_t *)malloc(sizeof(inode_f_t));
+        //inode_alloc(&inode_f, inode);
+       
 
-        for(int i = 0; i < 1; i++) {
-            //requires null terminated string
-            strcpy(rootdir.name[i], "\0");
-            rootdir.inode_table[i] = inode; 
-        }
+        //block_t *blks = (block_t *)malloc(BLOCK_SIZE * MAX_DIRECTS);
+        //prepare_blks(&inode_f, blks);
 
-        write_blocks(0,1, &sb); 
-        write_blocks(1,1, &fbm); 
-        write_blocks(2, 1, &rootdir);
+        //write_blocks(0,1, &sb); 
+        //write_blocks(1,1, &fbm);
+
+        printf("sb_size: %lu\n", sizeof(SuperBlock_t));
+        printf("fbm_size: %lu\n", sizeof(FBM_t));
+        printf("inode_size: %lu\n", sizeof(inode_t));
+        printf("root_dir_size: %lu\n", sizeof(root_directory_t));
+
 
     } else {
         init_disk("test_disk", BLOCK_SIZE, NB_BLOCKS);
@@ -78,7 +108,7 @@ void mkssfs(int fresh) {
 
     
     /* State of the file system at this point: 
-     * fs = {0: sb, 1: fbm, 2: rood directory, [3, 16]: inode_file, [4, 1023] : free} 
+     * fs = {0: sb, 1: fbm, 2: root directory, [3, 16]: inode_file, [4, 1023] : free} 
      */
 }
 
