@@ -4,18 +4,23 @@
 #define BLOCK_SIZE 1024
 #define NB_BLOCKS 1024
 #define NB_FILES 200
+#define MAX_DIRECTS 14
 #define FS_SIZE 1048576
 #define NB_SHADOWS 10
+#define MAX_NAME_LENGTH 10
+#define PERM_ALLOCATED_BLOCK_OFFSET 3
 
 
 typedef struct inode {
     int size;
-    int direct[NB_BLOCKS]; //pointers to blocks
+    //pointers to just the first 14 blocks. For larger files use the indirect
+    int direct[MAX_DIRECTS];
+    int indirect;
 } inode_t;
 
 typedef struct RootDirectory {
-    char *name[NB_FILES];
     inode_t inode_table[NB_FILES];
+    char name[NB_FILES][MAX_NAME_LENGTH+1];
 } RootDirectory_t;
 
 typedef struct block {

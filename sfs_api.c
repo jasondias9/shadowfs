@@ -10,7 +10,7 @@ FBM_t fbm;
 
 void FBM_init(FBM_t *fbm) {
     for(int i = 0; i < NB_BLOCKS; i++) {
-        if(i <= 15) { 
+        if(i <= 16) { 
             fbm->fbm[i] = 0;
         } else {
             fbm->fbm[i] = 1;
@@ -24,48 +24,62 @@ void SuperBlock_init(SuperBlock_t *sb) {
     
     sb->magic_number = 0xACBD0005;
     sb->block_size = BLOCK_SIZE;
-    sb->fs_size = FS_SIZE; 
-    sb->num_inodes = NB_FILES-1;
-    inode_t root;
-    root.size = 13;
-    for(int i = 0; i < NB_BLOCKS-1; i++) {
-        if(i >= 2 && i < 15) { 
-            root.direct[i] = i;
-        } else {
-            root.direct[i] = -1; 
-        }
+    sb->fs_size = 0; //is this supposed to be current FS size ? or max?  
+    sb->num_inodes = 0;
+
+    inode_t root = *(inode_t *)malloc(sizeof(inode_t));;
+    root.size = 14;
+    root.indirect = -1;
+    for(int i = 0; i < MAX_DIRECTS; i++) {
+        root.direct[i] = i + PERM_ALLOCATED_BLOCK_OFFSET;
     }
     sb->root = root; 
+}
+
+void INodeFile_init(inode_t *inode) {
+    inode->size = 0;
+    inode->indirect = -1;
+    for(int i = 0; i < MAX_DIRECTS; i++) {
+        //file points to no blocks for now.  
+        inode->direct[i] = -1;
+    } 
 }
 
 void mkssfs(int fresh) {
     
     if(fresh) {
+        
+        if(init_fresh_disk("test_disk", BLOCK_SIZE, NB_BLOCKS) < 0) {
+            perror("Faild to create a new file system");
+        }
 
-        init_fresh_disk("test_disk", BLOCK_SIZE, NB_BLOCKS);
-        rootdir = *(struct RootDirectory *)malloc(sizeof(rootdir));
+        sb = *(SuperBlock_t *)malloc(sizeof(SuperBlock_t));
+        fbm = *(FBM_t *)malloc(sizeof(FBM_t));
+        rootdir = *(RootDirectory_t *)malloc(sizeof(rootdir));
+        inode_t inode = *(inode_t *)malloc(sizeof(inode_t));
 
         SuperBlock_init(&sb);        
         FBM_init(&fbm);
-        
+        INodeFile_init(&inode);
+
+        for(int i = 0; i < 1; i++) {
+            //requires null terminated string
+            strcpy(rootdir.name[i], "\0");
+            rootdir.inode_table[i] = inode; 
+        }
+
         write_blocks(0,1, &sb); 
-        write_blocks(1,1, &fbm);
+        write_blocks(1,1, &fbm); 
+        write_blocks(2, 1, &rootdir);
 
     } else {
         init_disk("test_disk", BLOCK_SIZE, NB_BLOCKS);
     }
-    inode_t inode = *(inode_t *)malloc(sizeof(inode_t));
-    printf("%lu\n", sizeof(inode_t));
-    for(int i = 15; i < NB_FILES; i++) {
-        rootdir.name[i] = "nRx4jdF2YQ";
-        rootdir.inode_table[i] = inode;
-    }
-    /*
-     * 1) current inode size is 4100 - 1024 blocks * 4 (size of int) + 4 bytes (size) = 4100
-     * 2) what calculation are they doing to get 64 bytes per inode?
-     *
-     * */
 
+    
+    /* State of the file system at this point: 
+     * fs = {0: sb, 1: fbm, 2: rood directory, [3, 16]: inode_file, [4, 1023] : free} 
+     */
 }
 
 int main() {
