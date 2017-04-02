@@ -8,14 +8,14 @@
 #define NB_SHADOWS 10
 
 
-typedef struct i_node {
+typedef struct inode {
     int size;
     int direct[NB_BLOCKS]; //pointers to blocks
-} i_node_t;
+} inode_t;
 
 typedef struct RootDirectory {
     char *name[NB_FILES];
-    i_node_t i_node_table[NB_FILES];
+    inode_t inode_table[NB_FILES];
 } RootDirectory_t;
 
 typedef struct block {
@@ -27,7 +27,7 @@ typedef struct SuperBlock {
     int block_size;
     int fs_size;
     int num_inodes;
-    i_node_t root;
+    inode_t root;
 } SuperBlock_t;
 
 typedef struct FBM {

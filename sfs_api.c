@@ -1,5 +1,4 @@
 #include "disk_emu.h"
-#include "sshfs_helper.c" //update to header
 #include "sfs_api.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,9 +11,13 @@ FBM_t fbm;
 void FBM_init(FBM_t *fbm) {
     for(int i = 0; i < NB_BLOCKS; i++) {
         if(i <= 15) { 
-            fbm->fbm[i];
+            fbm->fbm[i] = 0;
+        } else {
+            fbm->fbm[i] = 1;
         }
+
     }
+
 }
 
 void SuperBlock_init(SuperBlock_t *sb) {
@@ -23,7 +26,7 @@ void SuperBlock_init(SuperBlock_t *sb) {
     sb->block_size = BLOCK_SIZE;
     sb->fs_size = FS_SIZE; 
     sb->num_inodes = NB_FILES-1;
-    i_node_t root;
+    inode_t root;
     root.size = 13;
     for(int i = 0; i < NB_BLOCKS-1; i++) {
         if(i >= 2 && i < 15) { 
@@ -39,22 +42,34 @@ void mkssfs(int fresh) {
     
     if(fresh) {
 
-        SuperBlock_init(&sb);        
-        FBM_init(&fbm);
         init_fresh_disk("test_disk", BLOCK_SIZE, NB_BLOCKS);
         rootdir = *(struct RootDirectory *)malloc(sizeof(rootdir));
+
+        SuperBlock_init(&sb);        
+        FBM_init(&fbm);
         
         write_blocks(0,1, &sb); 
-        write_blocks(1,1, &rootdir);
+        write_blocks(1,1, &fbm);
 
     } else {
         init_disk("test_disk", BLOCK_SIZE, NB_BLOCKS);
     }
+    inode_t inode = *(inode_t *)malloc(sizeof(inode_t));
+    printf("%lu\n", sizeof(inode_t));
+    for(int i = 15; i < NB_FILES; i++) {
+        rootdir.name[i] = "nRx4jdF2YQ";
+        rootdir.inode_table[i] = inode;
+    }
+    /*
+     * 1) current inode size is 4100 - 1024 blocks * 4 (size of int) + 4 bytes (size) = 4100
+     * 2) what calculation are they doing to get 64 bytes per inode?
+     *
+     * */
+
 }
 
 int main() {
     mkssfs(1);
-
 }
 
 int ssfs_fopen(char *name) {
@@ -74,6 +89,9 @@ int ssfs_fwseek(int fileID, int loc) {
 }
 
 int ssfs_fwrite(int fileID, char *buf, int length) {
+    //block_t blk0 =*(struct block *)malloc(1024);
+    //memcpy(&blk0, &sb, 1024);
+
     return 0;
 }
 
