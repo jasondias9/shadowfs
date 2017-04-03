@@ -102,8 +102,13 @@ void mkssfs(int fresh) {
         rootdir = *(root_directory_t *)malloc(sizeof(root_directory_t));
         inode_t inode = *(inode_t *)malloc(sizeof(inode_t));
         
-        SuperBlock_init(&sb);        
+        SuperBlock_init(&sb);
+        block_t blk0 = *(block_t *)malloc(BLK_SIZE);
+        memcpy(&blk0, &sb, sizeof(sb));
+        
         FBM_init(&fbm);
+        block_t blk1 = *(block_t *)malloc(BLK_SIZE);
+        memcpy(&blk1, &fbm, sizeof(fbm));
         
         //initialize empty inodes for the inode_file
         inode_init(&inode);
@@ -122,8 +127,8 @@ void mkssfs(int fresh) {
         //segment rootdir into blocks
         segment_rootdir(&rootdir, rootdir_blks); 
 
-        write_blocks(0,1, &sb); 
-        write_blocks(1,1, &fbm);
+        write_blocks(0,1, &blk0); 
+        write_blocks(1,1, &blk1);
         for(int i = 2; i <= 4; i++) {
             write_blocks(i, 1, &rootdir_blks[i]);
         }
@@ -139,9 +144,16 @@ void mkssfs(int fresh) {
     /* State of the file system at this point: 
      * fs = {0: sb, 1: fbm, [2-4]: root directory, [5, 18]: inode_file, [19, 1023] : free} 
     */
+        
 }
 
+struct test {
+    char* test_str;
+}test_t;
 
+int main() {
+   mkssfs(1);
+}
 
 int ssfs_fopen(char *name) {
     return 0;
