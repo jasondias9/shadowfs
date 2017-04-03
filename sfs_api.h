@@ -8,7 +8,9 @@
 #define FS_SIZE 1048576
 #define NB_SHADOWS 10
 #define MAX_NAME_LENGTH 10
-#define PERM_ALLOCATED_BLOCK_OFFSET 3
+#define JNODE_OFFSET 5
+#define ROOT_DIR_OFFSET 2
+#define INODE_PER_BLOCK 16
 
 #include <stdint.h>
 
