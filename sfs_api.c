@@ -7,15 +7,15 @@
 //store these in memory to ensure fast access
 SuperBlock_t sb;
 FBM_t fbm;
-root_directory_t root;
+root_directory_t rootdir;
 inode_f_t inode_f;
 
 void FBM_init(FBM_t *fbm) {
-    for(int i = 0; i < NB_BLOCKS; i++) {
+    for(int i = 0; i < NB_BLKS; i++) {
         if(i <= 18) { 
-            fbm->fbm[i] = 0;
+            fbm->fbm[i] = FULL;
         } else {
-            fbm->fbm[i] = 1;
+            fbm->fbm[i] = EMPTY;
         }
 
     }
@@ -25,13 +25,13 @@ void FBM_init(FBM_t *fbm) {
 void SuperBlock_init(SuperBlock_t *sb) {
     
     sb->magic_number = 0xACBD0005;
-    sb->block_size = BLOCK_SIZE;
+    sb->block_size = BLK_SIZE;
     sb->fs_size = 0; //is this supposed to be current FS size ? or max?  
     sb->num_inodes = 0;
 
     inode_t root = *(inode_t *)malloc(sizeof(inode_t));;
-    root.size = 14;
-    root.indirect = -1;
+    root.size = MAX_DIRECTS;
+    root.indirect = UNDEF;
     for(int i = 0; i < MAX_DIRECTS; i++) {
         root.direct[i] = i + JNODE_OFFSET;
     }
@@ -47,10 +47,17 @@ void inode_init(inode_t *inode) {
     } 
 }
 
-void prepare_blks(inode_f_t *inode_f_ptr, block_t *blks) { 
+void segment_rootdir(root_directory_t *rootdir_ptr, block_t *blks) {
+    for(int i = 0; i < ROOT_BLK_ALLOC; i++) {
+        blks[i] = *(block_t *)malloc(BLK_SIZE);
+        memcpy(&blks[i], &(rootdir_ptr->name[i*NAME_PER_BLK]), BLK_SIZE);
+    }
+}
+
+void segment_inode_f(inode_f_t *inode_f_ptr, block_t *blks) { 
     for(int i = 0; i < MAX_DIRECTS; i++) {
-        blks[i] =  *(block_t *)malloc(BLOCK_SIZE);
-        memcpy(&blks[i], &(inode_f_ptr->inode_table[i*INODE_PER_BLOCK]), BLOCK_SIZE);
+        blks[i] =  *(block_t *)malloc(BLK_SIZE);
+        memcpy(&blks[i], &(inode_f_ptr->inode_table[i*INODE_PER_BLK]), BLK_SIZE);
     }
 }
 
@@ -59,7 +66,7 @@ void root_init(inode_t *root) {
         if(i < 3) {
             root->direct[i] = i + ROOT_DIR_OFFSET; 
         } else {
-            root->direct[i] = -1;
+            root->direct[i] = UNDEF;
         }
     }
 }
@@ -75,17 +82,24 @@ void inode_alloc(inode_f_t *inode_f, inode_t inode) {
     }
 }
 
+void rootdir_init(root_directory_t *rootdir) {
+    //init root name;
+    strcpy(rootdir->name[0], "/\0"); 
+    for(int i = 1; i < NB_FILES; i++) {
+        strcpy(rootdir->name[i], "\0"); 
+    }
+}
+
 void mkssfs(int fresh) {
     
     if(fresh) {
-        
-        if(init_fresh_disk("test_disk", BLOCK_SIZE, NB_BLOCKS) < 0) {
+        if(init_fresh_disk("test_disk", BLK_SIZE, NB_BLKS) < 0) {
             perror("Faild to create a new file system");
         }
 
         sb = *(SuperBlock_t *)malloc(sizeof(SuperBlock_t));
         fbm = *(FBM_t *)malloc(sizeof(FBM_t));
-        root = *(root_directory_t *)malloc(sizeof(root_directory_t));
+        rootdir = *(root_directory_t *)malloc(sizeof(root_directory_t));
         inode_t inode = *(inode_t *)malloc(sizeof(inode_t));
         
         SuperBlock_init(&sb);        
@@ -98,33 +112,36 @@ void mkssfs(int fresh) {
         inode_alloc(&inode_f, inode);
        
 
-        block_t *blks = (block_t *)malloc(BLOCK_SIZE * MAX_DIRECTS);
+        block_t *inode_f_blks = (block_t *)malloc(BLK_SIZE * MAX_DIRECTS);
         //segment inode file into blocks
-        prepare_blks(&inode_f, blks);
+        segment_inode_f(&inode_f, inode_f_blks);
        
-        
+        //initialize root directory
+        rootdir_init(&rootdir);
+        block_t *rootdir_blks = (block_t *)malloc(BLK_SIZE * NB_FILES);
+        //segment rootdir into blocks
+        segment_rootdir(&rootdir, rootdir_blks); 
 
         write_blocks(0,1, &sb); 
         write_blocks(1,1, &fbm);
+        for(int i = 2; i <= 4; i++) {
+            write_blocks(i, 1, &rootdir_blks[i]);
+        }
         for(int i = 5; i <= 18; i++) {
             //write the inode_file
-            write_blocks(i, 1, &blks[i]);
+            write_blocks(i, 1, &inode_f_blks[i]);
         }
-
         
     } else {
-        init_disk("test_disk", BLOCK_SIZE, NB_BLOCKS);
+        init_disk("test_disk", BLK_SIZE, NB_BLKS);
     }
-
-    
+   
     /* State of the file system at this point: 
      * fs = {0: sb, 1: fbm, [2-4]: root directory, [5, 18]: inode_file, [19, 1023] : free} 
-     */
+    */
 }
 
-int main() {
-    mkssfs(1);
-}
+
 
 int ssfs_fopen(char *name) {
     return 0;

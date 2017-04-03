@@ -1,8 +1,8 @@
 #ifndef _SSHFS_
 #define _SSHFS_
 
-#define BLOCK_SIZE 1024
-#define NB_BLOCKS 1024
+#define BLK_SIZE 1024
+#define NB_BLKS 1024
 #define NB_FILES 200
 #define MAX_DIRECTS 14
 #define FS_SIZE 1048576
@@ -10,7 +10,12 @@
 #define MAX_NAME_LENGTH 10
 #define JNODE_OFFSET 5
 #define ROOT_DIR_OFFSET 2
-#define INODE_PER_BLOCK 16
+#define INODE_PER_BLK 16
+#define NAME_PER_BLK 93
+#define ROOT_BLK_ALLOC 3
+#define UNDEF -1
+#define FULL 0
+#define EMPTY 1
 
 #include <stdint.h>
 
@@ -30,7 +35,7 @@ typedef struct root_directory {
 } root_directory_t;
 
 typedef struct block {
-    unsigned char data[BLOCK_SIZE];
+    unsigned char data[BLK_SIZE];
 } block_t;
 
 typedef struct SuperBlock {
@@ -42,7 +47,7 @@ typedef struct SuperBlock {
 } SuperBlock_t;
 
 typedef struct FBM {
-   uint8_t fbm[NB_BLOCKS]; 
+   uint8_t fbm[NB_BLKS]; 
 } FBM_t;
 
 /*!
