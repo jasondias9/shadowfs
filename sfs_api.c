@@ -39,7 +39,7 @@ void SuperBlock_init(SuperBlock_t *sb) {
 }
 
 void inode_init(inode_t *inode) {
-    inode->size = 0;
+    inode->size = -1;
     inode->indirect = -1;
     for(int i = 0; i < MAX_DIRECTS; i++) {
         //file points to no blocks for now.  
@@ -62,6 +62,7 @@ void segment_inode_f(inode_f_t *inode_f_ptr, block_t *blks) {
 }
 
 void root_init(inode_t *root) {
+    root->size = 3;
     for(int i = 0; i < MAX_DIRECTS; i++) {
         if(i < 3) {
             root->direct[i] = i + ROOT_DIR_OFFSET; 
@@ -130,33 +131,55 @@ void mkssfs(int fresh) {
         write_blocks(0,1, &blk0); 
         write_blocks(1,1, &blk1);
         for(int i = 2; i <= 4; i++) {
-            write_blocks(i, 1, &rootdir_blks[i]);
+            write_blocks(i, 1, &rootdir_blks[i-2]);
         }
         for(int i = 5; i <= 18; i++) {
             //write the inode_file
-            write_blocks(i, 1, &inode_f_blks[i]);
+            write_blocks(i, 1, &inode_f_blks[i-5]);
         }
         
     } else {
         init_disk("test_disk", BLK_SIZE, NB_BLKS);
-    }
-   
+    } 
     /* State of the file system at this point: 
      * fs = {0: sb, 1: fbm, [2-4]: root directory, [5, 18]: inode_file, [19, 1023] : free} 
     */
         
 }
 
-struct test {
-    char* test_str;
-}test_t;
-
 int main() {
-   mkssfs(1);
+    mkssfs(1);
+    ssfs_fopen("hello");
 }
 
 int ssfs_fopen(char *name) {
-    return 0;
+
+    //check if root directory is already in cache
+    if(strcmp(rootdir.name[0],"/") != 0) {
+        printf("reloading from disk...\n");
+        rootdir = *(root_directory_t *)malloc(sizeof(root_directory_t));
+        read_blocks(2, 3, &rootdir);
+        //for now this works. Will need to check that EOF is correct.
+        //can write simple test for this
+    }
+    int create = 1;
+    
+    //for now linear search. can add optimization
+    for(int i = 1; i < NB_FILES; i++) {
+        if(strcmp(rootdir.name[i], name) == 0) {
+            //I just need to open
+            create = 0; 
+            break;
+        }    
+    }
+
+    if(create) {
+    
+    } else {
+    
+    }
+
+    return 1;
 }
 
 int ssfs_fclose(int fileID) {
@@ -171,9 +194,7 @@ int ssfs_fwseek(int fileID, int loc) {
     return 0;
 }
 
-int ssfs_fwrite(int fileID, char *buf, int length) {
-    //block_t blk0 =*(struct block *)malloc(1024);
-    //memcpy(&blk0, &sb, 1024);
+int ssfs_fwrite(int fileID, char *buf, int length) { 
 
     return 0;
 }
