@@ -16,8 +16,16 @@
 #define UNDEF -1
 #define FULL 0
 #define EMPTY 1
+#define MAGIC_NUMBER 0xACBD0005
 
 #include <stdint.h>
+
+
+typedef struct OFD {
+    int inode_num;
+    int r_ptr;
+    int w_ptr;
+} OFD_t;
 
 typedef struct inode {
     int size;
