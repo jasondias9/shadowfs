@@ -216,31 +216,32 @@ int ssfs_fopen(char *name) {
 }
 
 int ssfs_fclose(int fileID) {
-    ofd[fileID].inode_num = -1;
-    ofd[fileID].w_ptr = 0;
-    ofd[fileID].r_ptr = 0;
-    return 0;
+    if(ofd[fileID].inode_num != -1) {
+        ofd[fileID].inode_num = -1;
+        ofd[fileID].w_ptr = 0;
+        ofd[fileID].r_ptr = 0;
+        return 0;
+    } 
+    //file specified is not initialized
+    return -1;
+    
 }
 
 int ssfs_frseek(int fileID, int loc) {
-    for(int i = 0; i < NB_FILES; i++) {
-        if(ofd[i].inode_num == fileID) {
-            //should do validation...
-            ofd[i].r_ptr = loc;
-            return 0;
-        }
+    if(ofd[fileID].inode_num != -1) {
+        ofd[fileID].r_ptr = loc;
+        return 0;
     }
+    //file specified is not initialized
     return -1;
 }
 
 int ssfs_fwseek(int fileID, int loc) {
-    for(int i = 0; i < NB_FILES; i++) {
-        if(ofd[i].inode_num == fileID) {
-            //should do validation...
-            ofd[i].w_ptr = loc;
-            return 0;
-        }
+    if(ofd[fileID].inode_num != -1) {
+        ofd[fileID].w_ptr = loc;
+        return 0;
     }
+    //file specified is not initialized
     return -1;
 }
 
@@ -253,8 +254,8 @@ int find_free_block() {
     return -1;
 }
 
-int write_cont(int length, int curr_blk, char **buf, int fileID) {
-    int initial_size = inode_f.inode_table[fileID].size;
+int write_cont(int length, int curr_blk, char **buf, int inode_num) {
+    int initial_size = inode_f.inode_table[inode_num].size;
     while(length > 0) {
         int i = 0;
         int blk_add = find_free_block();
@@ -266,39 +267,31 @@ int write_cont(int length, int curr_blk, char **buf, int fileID) {
         memcpy(&blk0, &buf[i*BLK_SIZE], BLK_SIZE);
         write_blocks(blk_add, 1, &blk0);
         length -= BLK_SIZE;
-        if(inode_f.inode_table[fileID].direct[curr_blk] == -1) {
+        if(inode_f.inode_table[inode_num].direct[curr_blk] == -1) {
             if(length-BLK_SIZE < 0) {
-                inode_f.inode_table[fileID].size += length;
+                inode_f.inode_table[inode_num].size += length;
             } else {
-                inode_f.inode_table[fileID].size += BLK_SIZE;
+                inode_f.inode_table[inode_num].size += BLK_SIZE;
             } 
         }
-        inode_f.inode_table[fileID].direct[curr_blk] = blk_add;
+        inode_f.inode_table[inode_num].direct[curr_blk] = blk_add;
         curr_blk++;
         i++;
     }
-    return inode_f.inode_table[fileID].size - initial_size;
+    return inode_f.inode_table[inode_num].size - initial_size;
 }
 
 int ssfs_fwrite(int fileID, char *buf, int length) { 
-    int open = 0;
     int wrote = 0;
-    if(length < 1) return -1; 
-    int w_ptr;
-
-    for(int i = 0; i < NB_FILES; i++) {
-        if(ofd[i].inode_num == fileID) {
-            w_ptr = ofd[i].w_ptr;
-            open = 1;
-            break;
-        }
-    }
-    if(!open) {
-        //file wasn't open
-        printf("%s not open\n", rootdir.name[fileID]);
-        return -1;
-    }
+    if(length < 1) return -1;
+    int w_ptr = ofd[fileID].w_ptr;
     
+    int inode_num = ofd[fileID].inode_num;
+    if(ofd[fileID].inode_num == -1) {
+        //file not open
+        return -1;
+    }  
+ 
     if(w_ptr % BLK_SIZE == 0) {
         //start writing in curr_blk
         int curr_blk = w_ptr/BLK_SIZE; 
@@ -307,7 +300,7 @@ int ssfs_fwrite(int fileID, char *buf, int length) {
         w_ptr = 0;
 
         //write free blks
-        wrote = write_cont(length, curr_blk, &buf, fileID);
+        wrote = write_cont(length, curr_blk, &buf, inode_num);
     } else { 
         //start writing in the curr_blk (where the w_ptr is)
         int curr_blk = w_ptr/BLK_SIZE;
@@ -320,7 +313,7 @@ int ssfs_fwrite(int fileID, char *buf, int length) {
 
         block_t blk0 = *(block_t *)malloc(BLK_SIZE);
         //get the actual blk address
-        int blk_add = inode_f.inode_table[fileID].direct[curr_blk]; //TODO: deal with indirect
+        int blk_add = inode_f.inode_table[inode_num].direct[curr_blk]; //TODO: deal with indirect
         read_blocks(blk_add, 1, &blk0);
         memcpy(&blk0.data[w_ptr], &buf, BLK_SIZE - w_ptr); 
         //write the partial block
@@ -331,7 +324,7 @@ int ssfs_fwrite(int fileID, char *buf, int length) {
         w_ptr = 0;
 
         //write free blks
-        wrote += write_cont(length, curr_blk, &buf, fileID);
+        wrote += write_cont(length, curr_blk, &buf, inode_num);
     }
     return wrote;
 }
