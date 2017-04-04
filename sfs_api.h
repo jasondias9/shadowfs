@@ -17,6 +17,7 @@
 #define FULL 0
 #define EMPTY 1
 #define MAGIC_NUMBER 0xACBD0005
+#define ROOT_DIR_SIZE 2189
 
 #include <stdint.h>
 
@@ -83,6 +84,7 @@ int ssfs_fopen(char *name);
 /*!
  * @name        ssfs_fclose
  * @param       fileID       ID of the file system
+ * @return      On success return 0, negative number otherwise
  *
  * Close a file, i.e. removes the entry from the file descriptor table
 */
@@ -92,7 +94,7 @@ int ssfs_fclose(int fileID);
  * @name         ssfs_frseek
  * @param        fileID       ID of the file system
  * @param        loc          location to seek until
- * @return       On success return 1, negative number otherwise.
+ * @return       On success return 0, negative number otherwise.
  * 
  * Moves the read pointer to the location specified
 */
@@ -102,7 +104,7 @@ int ssfs_frseek(int fileID, int loc);
  * @name         ssfs_fwseek
  * @param        fileID       ID of the file system
  * @param        loc          location to seek until
- * @return       On success return 1, negative number otherwise.
+ * @return       On success return 0, negative number otherwise.
  * 
  * Moves the write pointer to the location specified.
 */

@@ -153,13 +153,23 @@ void mkssfs(int fresh) {
 }
 
 int main() {
-    mkssfs(1);
-    ssfs_fopen("hello");
+    int length = 10000;
+    int w_ptr = 0;
+    int blks_req = 0;
+    int blk_n = w_ptr/BLK_SIZE;
+    w_ptr -= BLK_SIZE*blk_n;
+    if(length - (BLK_SIZE - w_ptr) > 0) {
+        blks_req = (length - (BLK_SIZE - w_ptr))/BLK_SIZE;
+        if(blks_req == 0) {
+            blks_req = 1;
+        }
+    }   
+    printf("blks_req: %i\n", blks_req);
 }
 
 int find_free_inode(inode_f_t *inode_f) {
     for(int i = 1; i < NB_FILES; i++) {
-        if(inode_f->inode_table[i].size != -1) {
+        if(inode_f->inode_table[i].size == -1) {
             return i;
         }
     }
@@ -198,7 +208,7 @@ int ssfs_fopen(char *name) {
 
     if(create) {
         //check if inode_f is already in cache 
-        if(inode_f.inode_table[0].size != ROOT_BLK_ALLOC) {
+        if(inode_f.inode_table[0].size != ROOT_DIR_SIZE) {
             printf("reloading inode file from disk...\n");
             inode_f = *(inode_f_t *)malloc(sizeof(inode_f_t));
             read_blocks(5, 14, &inode_f);
@@ -214,28 +224,76 @@ int ssfs_fopen(char *name) {
         if(ofd[fd].inode_num == -1) {
             ofd[fd].inode_num = inode_num;
             ofd[fd].r_ptr = 0;
-            ofd[fd].w_ptr = create ? 0 : inode_f.inode_table[inode_num].size; 
+            ofd[fd].w_ptr = create ? 0 : inode_f.inode_table[inode_num].size;
+            return fd;
         } 
     }
-
-    return fd;
+    return -1;
 }
 
 int ssfs_fclose(int fileID) {
-    return 0;
+    //does fileID correspond to the inode_num?
+    //remove file from open file descriptor table
+    for(int i = 0; i < NB_FILES; i++) {
+        if(ofd[i].inode_num == fileID) {
+            ofd[i].inode_num = -1;
+            ofd[i].r_ptr = 0;
+            ofd[i].w_ptr = 0;
+            return 0;
+        } 
+    }
+    return -1;
 }
 
 int ssfs_frseek(int fileID, int loc) {
-    return 0;
+    for(int i = 0; i < NB_FILES; i++) {
+        if(ofd[i].inode_num == fileID) {
+            //should do validation...
+            ofd[i].r_ptr = loc;
+            return 0;
+        }
+    }
+    return -1;
 }
 
 int ssfs_fwseek(int fileID, int loc) {
-    return 0;
+    for(int i = 0; i < NB_FILES; i++) {
+        if(ofd[i].inode_num == fileID) {
+            //should do validation...
+            ofd[i].w_ptr = loc;
+            return 0;
+        }
+    }
+    return -1;
 }
 
 int ssfs_fwrite(int fileID, char *buf, int length) { 
+    int open = 0;
+    if(length < 1) return -1; 
+    int inode_num;
+    int w_ptr;
 
-    return 0;
+    for(int i = 0; i < NB_FILES; i++) {
+        if(ofd[i].inode_num == fileID) {
+            inode_num = ofd[i].inode_num;  
+            w_ptr = ofd[i].w_ptr;
+            open = 1;
+        }
+    }
+    if(!open) {
+        //file wasn't open
+        return -1;
+    }
+    int add_blks_req = 0;
+    int blk_n = w_ptr/BLK_SIZE;
+    w_ptr = w_ptr - BLK_SIZE*blk_n; 
+    if(length - (BLK_SIZE - w_ptr) > 0) {
+        add_blks_req = (length - (BLK_SIZE - w_ptr))/BLK_SIZE;
+        if(add_blks_req == 0) {
+            add_blks_req = 1;
+        }
+    } 
+
 }
 
 int ssfs_fread(int fileID, char *buf, int length) {
