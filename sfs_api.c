@@ -306,7 +306,6 @@ int ssfs_fwrite(int fileID, char *buf, int length) {
     
     inode_f_t inode_f = *(inode_f_t *)malloc(sizeof(inode_f_t));
     inode_f_fetch(&inode_f);
-    //TODO: determine if it was an overwrite and only add size to file size if true
     int wrote = 0;
     if(length < 1) return -1;
     int w_ptr = ofd[fileID].w_ptr;
@@ -389,18 +388,35 @@ int main() {
     ssfs_fwseek(f1_fd, 1300);
 
     char buf_test2[12*122] = "HI WORLD worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldthis is the last block\0";
-    
     ssfs_fwrite(f1_fd, buf_test2, sizeof(buf_test2));
-    char *ret = (char *)malloc(85*12);
-    block_t blk = *(block_t *)malloc(BLK_SIZE);
-    read_blocks(22, 1, &blk);
-    memcpy(ret, &blk, BLK_SIZE);
-    printf("%s\n", ret);
+    char *ret = (char *)malloc(2764);
+    inode_f_t inode_f = *(inode_f_t *)malloc(sizeof(inode_f_t));
+    inode_f_fetch(&inode_f);
+    ssfs_frseek(f1_fd, 0);
+    ssfs_fread(f1_fd, ret, 2764);
+    printf("%s", ret);
     return 1;
 }
 
 int ssfs_fread(int fileID, char *buf, int length) {
-    return 0;
+    inode_f_t inode_f = *(inode_f_t *)malloc(sizeof(inode_f_t));
+    inode_f_fetch(&inode_f);
+
+    int r_ptr = ofd[fileID].r_ptr;
+    int inode_num = ofd[fileID].inode_num;
+    int size_f = inode_f.inode_table[inode_num].size;
+    int curr_blk = r_ptr/BLK_SIZE;
+    int blk_add = inode_f.inode_table[inode_num].direct[curr_blk];
+    int blks_to_read = (length - r_ptr)/BLK_SIZE + 1;
+
+    block_t *blks = (block_t *)malloc(length);
+    for(int i = 0; i < blks_to_read; i++) {
+        printf("reading from blk%i\n", inode_f.inode_table[inode_num].direct[i]);
+        read_blocks(inode_f.inode_table[inode_num].direct[i], 1, &blks[i].data);
+    }
+    buf = (char *)malloc(length);
+    memcpy(buf, blks + r_ptr, length - r_ptr);
+    return length;
 }
 
 int ssfs_remove(char *file) {
