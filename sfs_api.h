@@ -2,22 +2,33 @@
 #define _SSHFS_
 
 #define BLK_SIZE 1024
+#define FS_SIZE 1048576
+#define ROOT_DIR_SIZE 2189
+#define INODE_SIZE 64
+#define SB_SIZE 80
+
 #define NB_BLKS 1024
 #define NB_FILES 200
-#define MAX_DIRECTS 14
-#define FS_SIZE 1048576
 #define NB_SHADOWS 10
+
+#define MAX_DIRECTS 14
+
 #define MAX_NAME_LENGTH 10
+
 #define JNODE_OFFSET 5
 #define ROOT_DIR_OFFSET 2
+
 #define INODE_PER_BLK 16
 #define NAME_PER_BLK 93
+
 #define ROOT_BLK_ALLOC 3
 #define UNDEF -1
+
 #define FULL 0
 #define EMPTY 1
+
 #define MAGIC_NUMBER 0xACBD0005
-#define ROOT_DIR_SIZE 2189
+
 
 #include <stdint.h>
 

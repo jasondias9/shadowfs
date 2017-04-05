@@ -287,7 +287,7 @@ int write_cont(int length, int curr_blk, char **buf, int inode_num, inode_f_t *i
         block_t blk0 = *(block_t *)malloc(BLK_SIZE);
         memcpy(&blk0, &buf[i*BLK_SIZE], BLK_SIZE);
         write_blocks(blk_add, 1, &blk0);
-
+        fbm.fbm[blk_add] = 0;
         if(length-BLK_SIZE < 0) {
             inode_f->inode_table[inode_num].size += length;
         } else {
@@ -302,6 +302,8 @@ int write_cont(int length, int curr_blk, char **buf, int inode_num, inode_f_t *i
     block_t *blks = (block_t *)malloc(BLK_SIZE);
     inode_f_segment(inode_f, blks);
     inode_f_write(blks);
+
+    write_blocks(1, 1, &fbm);
     return inode_f->inode_table[inode_num].size - initial_size;
 }
 
@@ -345,12 +347,13 @@ int ssfs_fwrite(int fileID, char *buf, int length) {
         memcpy(&blk0.data[w_ptr], &buf, BLK_SIZE - w_ptr); 
         //write the partial block
         write_blocks(blk_add, 1, &blk0);   
-
+        fbm.fbm[blk_add] = 0;
+        write_blocks(1, 1, &fbm); 
         wrote = (BLK_SIZE - w_ptr);
         length -= wrote; 
         w_ptr = 0;
 
-        //write free blks
+        //write addtional free blks
         wrote += write_cont(length, curr_blk, &buf, inode_num, &inode_f);
     }
     return wrote;
@@ -366,7 +369,7 @@ int main() {
     char buf[12] = "hello world\0";
 
     int size = ssfs_fwrite(f1_fd, buf, sizeof(buf));
-
+    printf("%lu", sizeof(SuperBlock_t));
     return 1;
 }
 
