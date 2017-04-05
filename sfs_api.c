@@ -275,12 +275,12 @@ int find_free_block() {
     return -1;
 }
 
-int write_cont(int length, int curr_blk, char **buf, int inode_num, inode_f_t *inode_f) {
+int write_cont(int length, int curr_blk, char *buf, int inode_num, inode_f_t *inode_f) {
     int initial_size = inode_f->inode_table[inode_num].size;
     while(length > 0) {
         int i = 0;
         int blk_add = find_free_block();
-        if(blk_add == -1) {
+        if(blk_add < 0) {
             printf("No available blocks to write to\n");
             return -1;
         } 
@@ -288,29 +288,24 @@ int write_cont(int length, int curr_blk, char **buf, int inode_num, inode_f_t *i
         memcpy(&blk0, &buf[i*BLK_SIZE], BLK_SIZE);
         write_blocks(blk_add, 1, &blk0);
         fbm.fbm[blk_add] = 0;
-        if(length-BLK_SIZE < 0) {
+        if(length < BLK_SIZE) {
             inode_f->inode_table[inode_num].size += length;
         } else {
             inode_f->inode_table[inode_num].size += BLK_SIZE;
         } 
-
         length -= BLK_SIZE;
         inode_f->inode_table[inode_num].direct[curr_blk] = blk_add;
         curr_blk++;
         i++;
     }
-    block_t *blks = (block_t *)malloc(BLK_SIZE);
-    inode_f_segment(inode_f, blks);
-    inode_f_write(blks);
-
-    write_blocks(1, 1, &fbm);
     return inode_f->inode_table[inode_num].size - initial_size;
 }
 
 int ssfs_fwrite(int fileID, char *buf, int length) { 
+    
     inode_f_t inode_f = *(inode_f_t *)malloc(sizeof(inode_f_t));
     inode_f_fetch(&inode_f);
-
+    //TODO: determine if it was an overwrite and only add size to file size if true
     int wrote = 0;
     if(length < 1) return -1;
     int w_ptr = ofd[fileID].w_ptr;
@@ -329,47 +324,72 @@ int ssfs_fwrite(int fileID, char *buf, int length) {
         w_ptr = 0;
 
         //write free blks
-        wrote = write_cont(length, curr_blk, &buf, inode_num, &inode_f);
+        wrote = write_cont(length, curr_blk, buf, inode_num, &inode_f);
     } else { 
         //start writing in the curr_blk (where the w_ptr is)
         int curr_blk = w_ptr/BLK_SIZE;
-    
+        int write_size = length;
+
         //actual write position in curr block
         w_ptr -= curr_blk*BLK_SIZE;
-
+        
+        if(length > BLK_SIZE - w_ptr) {
+            write_size = BLK_SIZE - w_ptr;
+        }
         // the additional blks required to write remaining length
         int req_blk = (length - (BLK_SIZE-w_ptr))/BLK_SIZE + 1;
-
         block_t blk0 = *(block_t *)malloc(BLK_SIZE);
         //get the actual blk address
         int blk_add = inode_f.inode_table[inode_num].direct[curr_blk]; //TODO: deal with indirect
-        read_blocks(blk_add, 1, &blk0);
-        memcpy(&blk0.data[w_ptr], &buf, BLK_SIZE - w_ptr); 
+        memcpy(&blk0.data[w_ptr], &buf, write_size); 
         //write the partial block
-        write_blocks(blk_add, 1, &blk0);   
+        write_blocks(blk_add, 1, &blk0);
         fbm.fbm[blk_add] = 0;
-        write_blocks(1, 1, &fbm); 
-        wrote = (BLK_SIZE - w_ptr);
-        length -= wrote; 
-        w_ptr = 0;
+        int blk_occupied = inode_f.inode_table[inode_num].size - (BLK_SIZE*curr_blk);
 
-        //write addtional free blks
-        wrote += write_cont(length, curr_blk, &buf, inode_num, &inode_f);
+        int actual_b_written;
+        if(w_ptr > blk_occupied) {
+            actual_b_written = write_size;
+        } else {
+            actual_b_written = write_size - (blk_occupied - w_ptr);
+        }
+        wrote = write_size;
+        length -= wrote; 
+        inode_f.inode_table[inode_num].size += actual_b_written;
+        w_ptr = 0; 
+        //write remaining buff if avail
+        if(length) {
+            wrote += write_cont(length, curr_blk+1, buf + write_size, inode_num, &inode_f);
+        }
     }
+    block_t *blks = (block_t *)malloc(BLK_SIZE);
+    inode_f_segment(&inode_f, blks);
+    inode_f_write(blks);
+    write_blocks(1, 1, &fbm);
+    ofd[fileID].w_ptr = inode_f.inode_table[inode_num].size;
     return wrote;
 }
 
 int main() {
-    
     mkssfs(1);
     int f1_fd = ssfs_fopen("f1");
     //int f2_fd = ssfs_fopen("f2"); 
     //int f3_fd = ssfs_fopen("f3");
 
-    char buf[12] = "hello world\0";
-
+    char buf[12*120] = "hello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello world\0";
+    
+    int f2_fd = ssfs_fopen("f2");
+    char buf2[9] = "hi there\0";
     int size = ssfs_fwrite(f1_fd, buf, sizeof(buf));
-    printf("%lu", sizeof(SuperBlock_t));
+    ssfs_fwrite(f2_fd, buf2, sizeof(buf2));
+
+       //printf("w_ptr: %i\n", ofd[0].w_ptr); //this should have been the end of the file?
+    ssfs_fwseek(f1_fd, 1300);
+
+    char buf_test2[12*121] = "hello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello world\0";
+    
+    ssfs_fwrite(f1_fd, buf_test2, sizeof(buf_test2));
+    
     return 1;
 }
 
