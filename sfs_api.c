@@ -277,22 +277,23 @@ int find_free_block() {
 
 int write_cont(int length, int curr_blk, char *buf, int inode_num, inode_f_t *inode_f) {
     int initial_size = inode_f->inode_table[inode_num].size;
+    int i = 0;
     while(length > 0) {
-        int i = 0;
+
         int blk_add = find_free_block();
         if(blk_add < 0) {
             printf("No available blocks to write to\n");
             return -1;
         } 
         block_t blk0 = *(block_t *)malloc(BLK_SIZE);
-        memcpy(&blk0, &buf[i*BLK_SIZE], BLK_SIZE);
+        memcpy(&blk0, buf + i*BLK_SIZE, BLK_SIZE);
         write_blocks(blk_add, 1, &blk0);
         fbm.fbm[blk_add] = 0;
         if(length < BLK_SIZE) {
             inode_f->inode_table[inode_num].size += length;
         } else {
             inode_f->inode_table[inode_num].size += BLK_SIZE;
-        } 
+        }
         length -= BLK_SIZE;
         inode_f->inode_table[inode_num].direct[curr_blk] = blk_add;
         curr_blk++;
@@ -339,9 +340,11 @@ int ssfs_fwrite(int fileID, char *buf, int length) {
         // the additional blks required to write remaining length
         int req_blk = (length - (BLK_SIZE-w_ptr))/BLK_SIZE + 1;
         block_t blk0 = *(block_t *)malloc(BLK_SIZE);
+
         //get the actual blk address
         int blk_add = inode_f.inode_table[inode_num].direct[curr_blk]; //TODO: deal with indirect
-        memcpy(&blk0.data[w_ptr], &buf, write_size); 
+        read_blocks(blk_add, 1, &blk0);
+        memcpy(blk0.data + w_ptr, buf, write_size);
         //write the partial block
         write_blocks(blk_add, 1, &blk0);
         fbm.fbm[blk_add] = 0;
@@ -375,8 +378,7 @@ int main() {
     int f1_fd = ssfs_fopen("f1");
     //int f2_fd = ssfs_fopen("f2"); 
     //int f3_fd = ssfs_fopen("f3");
-
-    char buf[12*120] = "hello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello world\0";
+    char buf[12*120] = "1hello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldworldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello world\0";
     
     int f2_fd = ssfs_fopen("f2");
     char buf2[9] = "hi there\0";
@@ -386,10 +388,14 @@ int main() {
        //printf("w_ptr: %i\n", ofd[0].w_ptr); //this should have been the end of the file?
     ssfs_fwseek(f1_fd, 1300);
 
-    char buf_test2[12*121] = "hello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello world\0";
+    char buf_test2[12*122] = "HI WORLD worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldhello worldthis is the last block\0";
     
     ssfs_fwrite(f1_fd, buf_test2, sizeof(buf_test2));
-    
+    char *ret = (char *)malloc(85*12);
+    block_t blk = *(block_t *)malloc(BLK_SIZE);
+    read_blocks(22, 1, &blk);
+    memcpy(ret, &blk, BLK_SIZE);
+    printf("%s\n", ret);
     return 1;
 }
 
