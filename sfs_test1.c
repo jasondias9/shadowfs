@@ -1,4 +1,5 @@
 #include "tests.h"
+#include "sfs_api.h"
 /*
 Simple testing which only tests the basic features in a limited fashion. 
 For all tests, -1 is considered error and 0 is considered success. 
@@ -31,8 +32,9 @@ int simple_test(){
     test_simple_write_files(file_id, file_size, write_ptr, write_buf, num_file, &err_no);
     test_simple_read_files(file_id, file_size, write_buf, num_file, &err_no);
     test_read_all_files(file_id, file_size, write_buf, num_file, &err_no);
-    if(i < iterations - 1) //Fun with frseek and fwseek
-      test_seek(file_id, file_size, write_ptr, write_buf, num_file, 10, &err_no);
+    if(i < iterations - 1){ //Fun with frseek and fwseek
+        test_seek(file_id, file_size, write_ptr, write_buf, num_file, 10, &err_no);
+    }
   }
   //test close + reading
   test_close_files(file_names, file_id, num_file, &err_no);
@@ -42,7 +44,7 @@ int simple_test(){
   //testing Remove
   test_remove_files(file_id, file_size, write_ptr, file_names, write_buf, num_file, &err_no);
   free_name_element(file_names, num_file);
-  //Make new files and attempt to write in again. 
+  // Make new files and attempt to write in again. 
   test_open_new_files(file_names, file_id, num_file, &err_no);
   test_simple_write_files(file_id, file_size, write_ptr, write_buf, num_file, &err_no);
   test_read_all_files(file_id, file_size, write_buf, num_file, &err_no);
@@ -66,5 +68,5 @@ int simple_test(){
 /* The main testing program
  */
 int main(int argc, char **argv){
-  simple_test();
+  simple_test(); 
 }

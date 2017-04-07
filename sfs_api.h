@@ -51,7 +51,7 @@ typedef struct inode_f_t {
 } inode_f_t;
 
 typedef struct root_directory {
-    char name[NB_FILES-1][MAX_NAME_LENGTH+1];
+    char name[NB_FILES][MAX_NAME_LENGTH+1];
 } root_directory_t;
 
 typedef struct block {
