@@ -20,7 +20,8 @@ void OFD_init() {
 /* SuperBlock Operations */
 
 void SuperBlock_fetch(SuperBlock_t *sb) {
-    block_t *blk0 = (block_t *)malloc(BLK_SIZE);
+    block_t *blk0 = (block_t *)malloc(sizeof(block_t));
+    memset(blk0, 0, sizeof(block_t));
     read_blocks(0, 1, blk0);
     memcpy(sb, blk0, sizeof(*sb));
     free(blk0);
@@ -33,6 +34,7 @@ void SuperBlock_init(SuperBlock_t *sb) {
     sb->num_inodes = 1; 
 
     inode_t *root = (inode_t *)malloc(sizeof(inode_t));;
+    memset(root, 0, sizeof(inode_t));
     root->size = sizeof(inode_f_t);
     root->indirect = UNDEF;
     for(int i = 0; i < MAX_DIRECTS; i++) {
@@ -44,9 +46,10 @@ void SuperBlock_init(SuperBlock_t *sb) {
 
 void SuperBlock_write() {
     SuperBlock_t *sb = (SuperBlock_t *)malloc(sizeof(SuperBlock_t));
+    
     SuperBlock_init(sb);
     block_t *blk0 = (block_t *)malloc(BLK_SIZE);
-    memset(blk0->data, 0, BLK_SIZE);
+    memset(blk0, 0, sizeof(block_t));
     memcpy(blk0, sb, sizeof(SuperBlock_t)); 
     write_blocks(0,1, blk0);
     free(sb);
@@ -54,7 +57,8 @@ void SuperBlock_write() {
 }
 
 void SuperBlock_save(SuperBlock_t *sb) {
-    block_t *blk0 = (block_t *)malloc(BLK_SIZE);
+    block_t *blk0 = (block_t *)malloc(sizeof(block_t));
+    memset(blk0, 0, BLK_SIZE);
     memcpy(blk0, sb, sizeof(SuperBlock_t));
     write_blocks(0,1, blk0);
     free(blk0);
@@ -82,7 +86,7 @@ void FBM_init(FBM_t *fbm) {
 void FBM_write() {
     fbm = (FBM_t *)malloc(sizeof(FBM_t));
     FBM_init(fbm);
-    block_t *blk1 = (block_t *)malloc(BLK_SIZE);
+    block_t *blk1 = (block_t *)malloc(sizeof(block_t));
     memcpy(blk1, &fbm, sizeof(FBM_t)); 
     write_blocks(1,1, blk1);
     free(blk1);
@@ -91,30 +95,31 @@ void FBM_write() {
 /* root directory operations */
 
 void rootdir_write(block_t *rootdir_blks) {
-     for(int i = 2; i <= 4; i++) {
-        write_blocks(i, 1, &rootdir_blks[i-ROOT_DIR_OFFSET]);
+     for(int i = 0; i < 3; i++) {
+        write_blocks(i+2, 1, &rootdir_blks[0]);
     }
 }
 
 void rootdir_segment(root_directory_t *rootdir_ptr, block_t *blks) {
-    for(int i = 0; i < ROOT_BLK_ALLOC; i++) {
-        memcpy(&blks[i], &(rootdir_ptr->name[i*NAME_PER_BLK]), BLK_SIZE);
-    }
+    memcpy(&blks->data[0], &rootdir->name[0], BLK_SIZE);
+    memcpy(&blks->data[BLK_SIZE], &rootdir->name[93], BLK_SIZE);
+    memcpy(&blks->data[2*BLK_SIZE], &rootdir->name[186], 154);  
 }
 
 void rootdir_init(root_directory_t *rootdir) {
     //init root name;
-    strncpy(rootdir->name[0], "/\0", strlen("/\0")); 
+    strcpy(rootdir->name[0], "/\0"); 
     for(int i = 1; i < NB_FILES; i++) {
-        strncpy(rootdir->name[i], "\0", strlen("\0")); 
+        strcpy(rootdir->name[i], "\0"); 
     }
 }
 
 void rootdir_prepare() {
     rootdir = (root_directory_t *)malloc(sizeof(root_directory_t));
-    memset(rootdir->name, 0, NB_FILES - 1);
+    memset(rootdir, 0, sizeof(root_directory_t));
     rootdir_init(rootdir);
-    block_t *rootdir_blks = (block_t *)malloc(BLK_SIZE * NB_FILES);
+    block_t *rootdir_blks = (block_t *)malloc(sizeof(block_t) * 4);
+    memset(rootdir_blks, 0, sizeof(block_t) * ROOT_BLK_ALLOC);
     //segment rootdir into blocks
     rootdir_segment(rootdir, rootdir_blks);
     rootdir_write(rootdir_blks);
@@ -144,33 +149,34 @@ void root_init(inode_t *root) {
 
 
 void inode_f_fetch(inode_f_t *inode_f) {
-    block_t *blks = (block_t *)malloc(BLK_SIZE*MAX_DIRECTS);
+    block_t *blks = (block_t *)malloc(sizeof(block_t)*MAX_DIRECTS);
     read_blocks(5, 14, blks);
     memcpy(inode_f, blks, sizeof(inode_f_t));
     free(blks);
 }
 
 void inode_f_save(block_t *inode_f_blks) {
-    for(int i = 5; i <= 18; i++) {
+    for(int i = 0; i < 12; i++) {
         //write the inode_file
-        write_blocks(i, 1, &inode_f_blks[i-JNODE_OFFSET]);
+        write_blocks(i + 5, 1, &inode_f_blks[i]);
     }
 }
 
 void inode_f_segment(inode_f_t *inode_f_ptr, block_t *blks) { 
-    for(int i = 0; i < MAX_DIRECTS; i++) {
-        memcpy(&blks[i], &(inode_f_ptr->inode_table[i*INODE_PER_BLK]), BLK_SIZE);
+    for(int i = 0; i < 12; i++) {
+        memcpy(&blks[i], &inode_f_ptr->inode_table[i*INODE_PER_BLK], sizeof(block_t));
     }
+    memcpy(&blks[12], &inode_f_ptr->inode_table[192], 512);
 }
 
-void inode_alloc(inode_f_t *inode_f, inode_t inode) {
+void inode_alloc(inode_f_t *inode_f, inode_t *inode) {
     //initialize root
     inode_t *root_inode = (inode_t *)malloc(sizeof(inode_t));
     memcpy(root_inode, &inode, sizeof(inode_t));
     root_init(root_inode); 
     inode_f->inode_table[0] = *root_inode;
     for(int i = 1; i < NB_FILES; i++) {
-        inode_f->inode_table[i] = inode; 
+        inode_f->inode_table[i] = *inode; 
     }
     free(root_inode);
 }
@@ -190,8 +196,8 @@ void inode_f_prepare() {
     inode_f_t *inode_f = (inode_f_t *)malloc(sizeof(inode_f_t));
     memset(inode_f, 0, NB_FILES);
     //allocate the initilized inodes into a table
-    inode_alloc(inode_f, *inode); 
-    block_t *inode_f_blks = (block_t *)malloc(BLK_SIZE * MAX_DIRECTS);
+    inode_alloc(inode_f, inode); 
+    block_t *inode_f_blks = (block_t *)malloc(sizeof(block_t) * MAX_DIRECTS - 1);
     //segment inode file into blocks
     inode_f_segment(inode_f, inode_f_blks);
     inode_f_save(inode_f_blks);
@@ -209,7 +215,7 @@ int invalid_fileID(int fileID) {
     return 0;
 }
 
-int * intdup(int *arr, int length) {
+int *intdup(int *arr, int length) {
     int *p = (int *)malloc(length*sizeof(int));
     memcpy(p, arr, length);
     return p;
@@ -219,9 +225,11 @@ int * intdup(int *arr, int length) {
 /* Start of ssfs API */
 
 void mkssfs(int fresh) {
+
+
     OFD_init();
     if(fresh) {
-        if(init_fresh_disk("test_disk", BLK_SIZE, NB_BLKS) < 0) {
+        if(init_fresh_disk("test_disk", sizeof(block_t), NB_BLKS) < 0) {
             perror("Failed to create a new file system");
         }
 
@@ -229,9 +237,8 @@ void mkssfs(int fresh) {
         FBM_write();    
         rootdir_prepare();
         inode_f_prepare();
- 
     } else {
-        init_disk("test_disk", BLK_SIZE, NB_BLKS);
+        init_disk("test_disk", sizeof(block_t), NB_BLKS);
     } 
     /* State of the file system at this point: 
      * fs = {0: sb, 1: fbm, [2-4]: root directory, [5, 18]: inode_file, [19, 1023] : free} 
@@ -247,7 +254,6 @@ int ssfs_fopen(char *name) {
     inode_f_fetch(inode_f);  
     int create = 1;
     int inode_num = -1;
-    //for now linear search. can add optimization
     for(int i = 1; i < NB_FILES; i++) {
         if(strcmp(rootdir->name[i], name) == 0) {
             //I just need to open
@@ -260,13 +266,13 @@ int ssfs_fopen(char *name) {
         inode_num = find_free_inode(inode_f);
         inode_f->inode_table[inode_num].size = 0;
         sb->num_inodes++;
-        block_t *inode_f_blks = (block_t *)malloc(BLK_SIZE * MAX_DIRECTS);
+        block_t *inode_f_blks = (block_t *)malloc(sizeof(block_t) * MAX_DIRECTS);
         inode_f_segment(inode_f, inode_f_blks);
         inode_f_save(inode_f_blks);
         free(inode_f_blks);
         
         strncpy(rootdir->name[inode_num], name, strlen(name));
-        block_t *rootdir_blks = (block_t *)malloc(BLK_SIZE * NB_FILES);
+        block_t *rootdir_blks = (block_t *)malloc(sizeof(block_t) * NB_FILES);
         rootdir_segment(rootdir, rootdir_blks);
         rootdir_write(rootdir_blks);
         free(rootdir_blks);
@@ -279,13 +285,14 @@ int ssfs_fopen(char *name) {
             ofd[fd].inode_num = inode_num;
             ofd[fd].r_ptr = 0;
             ofd[fd].w_ptr = inode_f->inode_table[inode_num].size;
-            SuperBlock_save(sb);
+            SuperBlock_save(sb); 
             free(sb);
             free(inode_f);
             return fd;
         } 
     }
-    
+    free(sb);
+    free(inode_f);
     return -1;
 }
 
@@ -361,15 +368,22 @@ int write_cont(int length, int curr_blk, char *buf, int inode_num, inode_f_t *in
     while(length > 0) { 
   
         int blk_add = find_free_block();
+        printf("block address %i\n\n\n", blk_add);
         if(blk_add < 0) {
             printf("No available blocks to write to\n");
             return -1;
         } 
-        block_t *blk0 = (block_t *)malloc(BLK_SIZE);
+        block_t *blk0 = (block_t *)malloc(sizeof(block_t));
+        memset(blk0, 0, BLK_SIZE); 
+        if(length > BLK_SIZE) {
+            memcpy(blk0, buf + i*BLK_SIZE, BLK_SIZE);
+        } else {
+            memcpy(blk0, buf, length);
+        }
 
-        memcpy(blk0, buf + i*BLK_SIZE, BLK_SIZE);
         write_blocks(blk_add, 1, blk0);
         fbm->fbm[blk_add] = 0;
+        
         free(blk0);
         if(length < BLK_SIZE) {
             inode_f->inode_table[inode_num].size += length;
@@ -400,16 +414,14 @@ int ssfs_fwrite(int fileID, char *buf, int length) {
         //file not open
         return -1;
     }  
-    char * buf_cpy = (char *)malloc(strlen(buf)); 
-    memcpy(buf_cpy, buf, strlen(buf));
+
 
     if(w_ptr % BLK_SIZE == 0) {
         //start writing in curr_blk
         int curr_blk = w_ptr/BLK_SIZE; 
         w_ptr = 0;
-
         //write free blks
-        wrote = write_cont(length, curr_blk, buf_cpy, inode_num, inode_f);
+        wrote = write_cont(length, curr_blk, buf, inode_num, inode_f);
     } else { 
         //start writing in the curr_blk (where the w_ptr is)
         int curr_blk = w_ptr/BLK_SIZE;
@@ -422,16 +434,17 @@ int ssfs_fwrite(int fileID, char *buf, int length) {
             write_size = BLK_SIZE - w_ptr;
         }
         // the additional blks required to write remaining length
-        block_t *blk0 = (block_t *)malloc(BLK_SIZE);
+        block_t *blk0 = (block_t *)malloc(sizeof(block_t));
 
         //get the actual blk address
         int blk_add = inode_f->inode_table[inode_num].direct[curr_blk]; //TODO: deal with indirect
         read_blocks(blk_add, 1, blk0);
-        memcpy(blk0->data + w_ptr, buf_cpy, write_size);
+        memcpy((char *)blk0 + w_ptr, buf, write_size);
         //write the partial block
         write_blocks(blk_add, 1, blk0);
         free(blk0);
-        fbm->fbm[blk_add] = 0;
+
+
         int blk_occupied = inode_f->inode_table[inode_num].size - (BLK_SIZE*curr_blk);
 
         int actual_b_written;
@@ -446,11 +459,11 @@ int ssfs_fwrite(int fileID, char *buf, int length) {
         w_ptr = 0; 
         //write remaining buff if avail
         if(length) {
-            wrote += write_cont(length, curr_blk+1, buf_cpy + write_size, inode_num, inode_f);
+            wrote += write_cont(length, curr_blk+1, buf + write_size, inode_num, inode_f);
         }
     }
 
-    block_t *blks = (block_t *)malloc(BLK_SIZE*MAX_DIRECTS);
+    block_t *blks = (block_t *)malloc(sizeof(block_t)*MAX_DIRECTS);
     inode_f_segment(inode_f, blks);
     inode_f_save(blks);
     
@@ -458,7 +471,6 @@ int ssfs_fwrite(int fileID, char *buf, int length) {
     FBM_save(fbm);
     ofd[fileID].w_ptr = inode_f->inode_table[inode_num].size;
     free(inode_f);
-    free(buf_cpy);
     return wrote;
 }
 
@@ -528,19 +540,15 @@ int ssfs_fread(int fileID, char *buf, int length) {
     int blks_to_read = (length - r_ptr)/BLK_SIZE + 1;
     inode_f_t *inode_f = (inode_f_t *)malloc(sizeof(inode_f_t));
     inode_f_fetch(inode_f); 
-
-    block_t *blks = (block_t *)malloc((BLK_SIZE + 100) *blks_to_read);
-    block_t *blk0 = (block_t *)malloc(BLK_SIZE);
-    read_blocks(19, 1, blk0);
-    for(int i = curr_blk; i <= blks_to_read; i++) {
-        read_blocks(inode_f->inode_table[inode_num].direct[i], 1, &(blks[i]));
+    
+    block_t *blks = (block_t *)malloc(sizeof(block_t) * blks_to_read);
+    for(int i = curr_blk; i < blks_to_read; i++) {
+        read_blocks(inode_f->inode_table[inode_num].direct[i], 1, &blks[i]);
     }
-    
-    free(inode_f);
-    memcpy(buf, (char*)blks + r_ptr, length); 
 
+    memcpy(buf, (char *)blks + r_ptr, length);
+    free(inode_f);
     free(blks);
-    
     return length;
 }
 
@@ -556,7 +564,7 @@ int ssfs_remove(char *file) {
                         fbm->fbm[inode_f->inode_table[inode_num].direct[i]] = 1;
                         inode_f->inode_table[inode_num].direct[i] = -1;
                         FBM_save(fbm);
-                        block_t *blks = (block_t *)malloc(BLK_SIZE * MAX_DIRECTS);
+                        block_t *blks = (block_t *)malloc(sizeof(block_t) * MAX_DIRECTS);
                         inode_f_segment(inode_f, blks);
                         inode_f_save(blks);
                         free(blks);

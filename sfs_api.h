@@ -55,7 +55,7 @@ typedef struct root_directory {
 } root_directory_t;
 
 typedef struct block {
-    unsigned char data[BLK_SIZE];
+    char data[BLK_SIZE];
 } block_t;
 
 typedef struct SuperBlock {
