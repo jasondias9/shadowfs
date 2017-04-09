@@ -1,31 +1,27 @@
 #ifndef _SSHFS_
 #define _SSHFS_
 
-#define BLK_SIZE 1024
+#define BLOCK_SIZE 1024
 #define FS_SIZE 1048576
-#define ROOT_DIR_SIZE 2189
-#define INODE_SIZE 64
-#define SB_SIZE 80
+
+#define SUPER_BLOCK_ADD 0
+#define FBM_ADD 1
+#define ROOT_DIR_ADD 2
+#define INODE_FILE_ADD 5
+#define DATA_ADD 18
 
 #define NB_BLKS 1024
 #define NB_FILES 200
-#define NB_SHADOWS 10
-
-#define MAX_DIRECTS 14
+#define NB_DIR_PTR 14
 
 #define MAX_NAME_LENGTH 10
-
-#define JNODE_OFFSET 5
-#define ROOT_DIR_OFFSET 2
 
 #define INODE_PER_BLK 16
 #define NAME_PER_BLK 93
 
-#define ROOT_BLK_ALLOC 3
 #define UNDEF -1
-
 #define FULL 0
-#define EMPTY 1
+#define AVAIL 1
 
 #define MAGIC_NUMBER 0xACBD0005
 
@@ -33,16 +29,16 @@
 #include <stdint.h>
 
 
-typedef struct OFD {
+typedef struct ofd {
     int inode_num;
     int r_ptr;
     int w_ptr;
-} OFD_t;
+} ofd_t;
 
 typedef struct inode {
     int size;
     //pointers to just the first 14 blocks. For larger files use the indirect
-    int direct[MAX_DIRECTS];
+    int direct[NB_DIR_PTR];
     int indirect;
 } inode_t;
 
@@ -55,20 +51,20 @@ typedef struct root_directory {
 } root_directory_t;
 
 typedef struct block {
-    char data[BLK_SIZE];
+    char data[BLOCK_SIZE];
 } block_t;
 
-typedef struct SuperBlock {
+typedef struct super_block {
     int magic_number;
     int block_size;
     int fs_size;
     int num_inodes;
     inode_t root;
-} SuperBlock_t;
+} super_block_t;
 
-typedef struct FBM {
+typedef struct fbm {
    uint8_t fbm[NB_BLKS]; 
-} FBM_t;
+} fbm_t;
 
 /*!
  * @name        mkssfs
