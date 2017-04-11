@@ -69,7 +69,7 @@ int difficult_test(){
   //Recreate the file system but stale.
   mkssfs(0);
   
-  test_open_old_files(file_names, file_id, num_file, &err_no);
+  //test_open_old_files(file_names, file_id, num_file, &err_no);
   //More heavy random access memory reads
   for(int i = 0; i < iterations; i++){
       test_random_read_files(file_id, file_size, write_ptr, write_buf, num_file, &err_no);

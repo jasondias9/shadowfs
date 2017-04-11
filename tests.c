@@ -367,7 +367,8 @@ int test_difficult_write_files(int *file_id, int *file_size, int *write_ptr, cha
         return -1;
     }
     memcpy(write_buf[i] + sizeof(char) * write_ptr[i], text, strlen(text));
-    //Change write location 
+    //Change write location
+    printf("WRITE POINTERS: %i\n", write_ptr[i]);
     res = ssfs_fwseek(file_id[i], write_ptr[i]);
     if(res < 0)
       fprintf(stderr, "Warning: ssfs_fwseek returned negative. Potential fwseek fail?\n");
@@ -534,7 +535,7 @@ int test_overflow_open(int *file_id, int *file_sizes, int *write_ptr, char **fil
         file_names[i] = NULL;
         break;
     }
-    printf("File Opened %s\n", file_names[i]);
+    printf("File Opened number: %i  %s\n",i, file_names[i]);
   }
   //Check if we got the same file id for different files. 
   for (int i = 0; i < ret; i++) {
