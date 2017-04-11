@@ -81,7 +81,7 @@ int test_persistence(int *error, int write_length){
                   printf("Errors detected in Write Section. Persistence test exiting ... Error code: %d\n139 is Segfault.\n. Check valgrind for more information\n", temp);
                   error_num = 10;
                   exit(error_num);
-              }else{
+              } else{
                   error_num = WEXITSTATUS(temp);
               }
               pid = fork();
@@ -89,14 +89,14 @@ int test_persistence(int *error, int write_length){
                   printf("Checking Reading Files ... \n");
                   char *read_buf = calloc(write_length + 1, sizeof(char));
                   mkssfs(0);
-                  file_id = ssfs_fopen(file_name);
+                  file_id = ssfs_fopen(file_name); 
                   if(file_id < 0){
                       fprintf(stderr, "Error. File id returned negative\n");
                       error_num += 1;
                   }
                   ssfs_frseek(file_id, 0); //set seek to 0
                   for(int i = 0; i < 20; i++){
-                        if(ssfs_fread(file_id, read_buf,write_length) != write_length){
+                        if(ssfs_fread(file_id, read_buf, write_length) != write_length){
                             fprintf(stderr, "Error. Invalid number read ... \n");
                             error_num += 1;
                         }else if(strcmp(read_buf, write_data[i]) != 0){
@@ -235,6 +235,7 @@ int test_simple_read_files(int *file_id, int *file_size, char **write_buf, int n
     if(res != strlen(test_str))
       fprintf(stderr, "Warning: ssfs_fread should return number of bytes read. Potential read fail?\n");
     if(strcmp(buf, test_str) != 0){
+      printf("PING PING\n");
       fprintf(stderr, "Error: \nRead failed. Read:\n%s\nShould have Read:\n%s\n", buf, test_str);
       *err_no += 1;
     }

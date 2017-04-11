@@ -24,61 +24,61 @@ int difficult_test(){
   mkssfs(1);                     /* Initialize the file system. */
   //Attemping to crash the system with overflowing fopens
   //This function will remove all files after it's done.
-  //test_overflow_open(file_id, file_size, write_ptr, file_names, write_buf, ABS_CAP_FD, &err_no);
+  test_overflow_open(file_id, file_size, write_ptr, file_names, write_buf, ABS_CAP_FD, &err_no);
   //So we have to open new files. 
-  //test_open_new_files(file_names, file_id, num_file, &err_no);
+  test_open_new_files(file_names, file_id, num_file, &err_no);
   //Heavy write into the file system
   for(int i = 0; i < iterations; i++){
-      //res = test_difficult_write_files(file_id, file_size, write_ptr, write_buf, num_file, &err_no);
-      //if(res < 0)
+      res = test_difficult_write_files(file_id, file_size, write_ptr, write_buf, num_file, &err_no);
+      if(res < 0)
           break;
   }
   // //More heavy random access memory reads
   for(int i = 0; i < iterations; i++){
-     // test_random_read_files(file_id, file_size, write_ptr, write_buf, num_file, &err_no);
+      test_random_read_files(file_id, file_size, write_ptr, write_buf, num_file, &err_no);
   }
   //Test out a few errors you should catch
-  //test_read_write_out_of_bound(file_id, file_size, write_buf, num_file, &err_no);
+  test_read_write_out_of_bound(file_id, file_size, write_buf, num_file, &err_no);
   //Read All
-  //test_read_all_files(file_id, file_size, write_buf, num_file, &err_no);
+  test_read_all_files(file_id, file_size, write_buf, num_file, &err_no);
   //Crank the file system to max for two files. Assumes we have two files at least. 
-  //test_write_to_overflow(file_id, file_size, write_buf, 0, &err_no);
-  //test_write_to_overflow(file_id, file_size, write_buf, 1, &err_no);
+  test_write_to_overflow(file_id, file_size, write_buf, 0, &err_no);
+  test_write_to_overflow(file_id, file_size, write_buf, 1, &err_no);
 
   // //Remove all files
-  //test_close_files(file_names, file_id, num_file, &err_no);
-  //test_remove_files(file_id, file_size, write_ptr, file_names, write_buf, num_file, &err_no);
+  test_close_files(file_names, file_id, num_file, &err_no);
+  test_remove_files(file_id, file_size, write_ptr, file_names, write_buf, num_file, &err_no);
   //Free old files names
-  //free_name_element(file_names, num_file);
+  free_name_element(file_names, num_file);
   //Open up new files with new names. 
-  //test_open_new_files(file_names, file_id, num_file, &err_no);
+  test_open_new_files(file_names, file_id, num_file, &err_no);
   //Test if the new file names match. 
   for(int i = 0; i < iterations; i++){
-      //res = test_difficult_write_files(file_id, file_size, write_ptr, write_buf, num_file, &err_no);
-      //if(res < 0)
+      res = test_difficult_write_files(file_id, file_size, write_ptr, write_buf, num_file, &err_no);
+      if(res < 0)
           break;
     //We also play around with the seek by offsetting. 
-      //test_seek(file_id, file_size, write_ptr, write_buf, num_file, 10, &err_no);
+      test_seek(file_id, file_size, write_ptr, write_buf, num_file, 10, &err_no);
   }
   //More heavy random access memory reads
   for(int i = 0; i < iterations; i++){
-  //    test_random_read_files(file_id, file_size, write_ptr, write_buf, num_file, &err_no);
+      test_random_read_files(file_id, file_size, write_ptr, write_buf, num_file, &err_no);
   }  
 
-  //test_read_all_files(file_id, file_size, write_buf, num_file, &err_no);
+  test_read_all_files(file_id, file_size, write_buf, num_file, &err_no);
   //Recreate the file system but stale.
   mkssfs(0);
   
-  //test_open_old_files(file_names, file_id, num_file, &err_no);
+  test_open_old_files(file_names, file_id, num_file, &err_no);
   //More heavy random access memory reads
   for(int i = 0; i < iterations; i++){
-  //    test_random_read_files(file_id, file_size, write_ptr, write_buf, num_file, &err_no);
+      test_random_read_files(file_id, file_size, write_ptr, write_buf, num_file, &err_no);
   }  
   //Final round
-  //test_read_all_files(file_id, file_size, write_buf, num_file, &err_no);
+  test_read_all_files(file_id, file_size, write_buf, num_file, &err_no);
   //Remove all files
-  //test_close_files(file_names, file_id, num_file, &err_no);
-  //test_remove_files(file_id, file_size, write_ptr, file_names, write_buf, num_file, &err_no);
+  test_close_files(file_names, file_id, num_file, &err_no);
+  test_remove_files(file_id, file_size, write_ptr, file_names, write_buf, num_file, &err_no);
   //So at this point, there should be no files live. 
   //final round
   printf("\n-------------------------------\nDifficult test Finished.\nCurrent Error Num: %d\n--------------------------------\n\n", err_no);

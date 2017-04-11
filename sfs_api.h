@@ -25,9 +25,7 @@
 
 #define MAGIC_NUMBER 0xACBD0005
 
-
 #include <stdint.h>
-
 
 typedef struct ofd {
     int inode_num;
