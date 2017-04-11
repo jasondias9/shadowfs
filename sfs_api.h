@@ -64,6 +64,11 @@ typedef struct fbm {
    uint8_t fbm[NB_BLKS]; 
 } fbm_t;
 
+typedef struct indirect_blk {
+    uint8_t direct[1024];
+} indirect_blk_t;
+
+
 /*!
  * @name        mkssfs
  * @param       fresh      If 1, create the file system from scratch. 
@@ -148,20 +153,5 @@ int ssfs_fread(int fileID, char *buf, int length);
  * Removes the file from the file system
 */
 int ssfs_remove(char *file);
-
-/*!
- * @name ssfs_commit
- * 
- * Create a shadow of the file system
-*/
-int ssfs_commit();
-
-/*!
- * @name ssfs_restore
- * @param       cnum            **NOT SURE** 
- *
- * Restore the file system to a previous shadow
-*/
-int ssfs_restore(int cnum);
 
 #endif
