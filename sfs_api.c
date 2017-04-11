@@ -529,6 +529,7 @@ int ssfs_fread(int fileID, char *buf, int length) {
     int file_size = inode_f->inode_table[inode_num].size; 
     
     if(length > file_size) {
+        free(inode_f);
         return -1;
     }
     
